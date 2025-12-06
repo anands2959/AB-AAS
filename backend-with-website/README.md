@@ -25,7 +25,7 @@ npm run dev
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/register` | Register or fetch existing user by phone |
+| POST | `/api/register` | Register or fetch existing user by phone
 
 ### Full CRUD API
 
