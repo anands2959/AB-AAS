@@ -1,80 +1,80 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     ScrollView,
     TouchableOpacity,
+    ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Fonts } from '@/constants/theme';
 import { useLanguage } from '@/contexts/LanguageContext';
-
-interface Notification {
-    id: string;
-    title: string;
-    message: string;
-    time: string;
-    isRead: boolean;
-    type: 'info' | 'success' | 'warning';
-}
+import { useUser } from '@/contexts/UserContext';
+import {
+    subscribeToUserNotifications,
+    markNotificationAsRead,
+    markAllNotificationsAsRead,
+    UserNotification,
+} from '@/services/userNotificationService';
 
 export default function NotificationsScreen() {
     const router = useRouter();
     const { t } = useLanguage();
+    const { userData } = useUser();
     
-    const [notifications, setNotifications] = useState<Notification[]>([
-        {
-            id: '1',
-            title: 'Profile Update Required',
-            message: 'Please complete your profile to access all benefits.',
-            time: '2 hours ago',
-            isRead: false,
-            type: 'warning',
-        },
-        {
-            id: '2',
-            title: 'New Benefit Available',
-            message: 'A new disability benefit scheme has been launched. Check eligibility now.',
-            time: '5 hours ago',
-            isRead: false,
-            type: 'success',
-        },
-        {
-            id: '3',
-            title: 'Document Verification',
-            message: 'Your documents have been verified successfully.',
-            time: '1 day ago',
-            isRead: true,
-            type: 'success',
-        },
-        {
-            id: '4',
-            title: 'Application Status',
-            message: 'Your benefit application is under review.',
-            time: '2 days ago',
-            isRead: true,
-            type: 'info',
-        },
-        {
-            id: '5',
-            title: 'Community Update',
-            message: 'Join our community meeting scheduled for next week.',
-            time: '3 days ago',
-            isRead: true,
-            type: 'info',
-        },
-    ]);
+    const [notifications, setNotifications] = useState<UserNotification[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const markAsRead = (id: string) => {
-        setNotifications(notifications.map(notif => 
-            notif.id === id ? { ...notif, isRead: true } : notif
-        ));
+    useEffect(() => {
+        if (!userData?.phoneNumber) {
+            setLoading(false);
+            return;
+        }
+
+        // Subscribe to real-time notifications
+        const unsubscribe = subscribeToUserNotifications(
+            userData.phoneNumber,
+            (fetchedNotifications) => {
+                setNotifications(fetchedNotifications);
+                setLoading(false);
+            }
+        );
+
+        return () => unsubscribe();
+    }, [userData?.phoneNumber]);
+
+    const handleMarkAsRead = async (id: string) => {
+        try {
+            await markNotificationAsRead(id);
+        } catch (error) {
+            console.error('Error marking notification as read:', error);
+        }
     };
 
-    const markAllAsRead = () => {
-        setNotifications(notifications.map(notif => ({ ...notif, isRead: true })));
+    const handleMarkAllAsRead = async () => {
+        if (!userData?.phoneNumber) return;
+        
+        try {
+            await markAllNotificationsAsRead(userData.phoneNumber);
+        } catch (error) {
+            console.error('Error marking all as read:', error);
+        }
+    };
+
+    const getTimeAgo = (timestamp: any): string => {
+        if (!timestamp) return 'Just now';
+        
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        const now = new Date();
+        const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+        
+        if (seconds < 60) return 'Just now';
+        if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
+        if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
+        if (seconds < 604800) return `${Math.floor(seconds / 86400)} days ago`;
+        return date.toLocaleDateString();
     };
 
     const getIconName = (type: string) => {
@@ -94,6 +94,8 @@ export default function NotificationsScreen() {
                 return '#4CAF50';
             case 'warning':
                 return '#FF9800';
+            case 'error':
+                return '#F44336';
             default:
                 return '#2196F3';
         }
@@ -122,68 +124,75 @@ export default function NotificationsScreen() {
                 {unreadCount > 0 && (
                     <TouchableOpacity
                         style={styles.markAllButton}
-                        onPress={markAllAsRead}
+                        onPress={handleMarkAllAsRead}
                     >
                         <Text style={styles.markAllText}>{t('markAllRead')}</Text>
                     </TouchableOpacity>
                 )}
             </View>
 
-            <ScrollView
-                style={styles.scrollView}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}
-            >
-                {notifications.length === 0 ? (
-                    <View style={styles.emptyContainer}>
-                        <Ionicons name="notifications-off-outline" size={80} color="#CCC" />
-                        <Text style={styles.emptyTitle}>{t('noNotifications')}</Text>
-                        <Text style={styles.emptyMessage}>{t('noNotificationsMessage')}</Text>
-                    </View>
-                ) : (
-                    notifications.map((notification) => (
-                        <TouchableOpacity
-                            key={notification.id}
-                            style={[
-                                styles.notificationCard,
-                                !notification.isRead && styles.unreadCard,
-                            ]}
-                            onPress={() => markAsRead(notification.id)}
-                            activeOpacity={0.7}
-                        >
-                            <View style={styles.notificationIcon}>
-                                <Ionicons
-                                    name={getIconName(notification.type)}
-                                    size={28}
-                                    color={getIconColor(notification.type)}
-                                />
-                            </View>
-                            <View style={styles.notificationContent}>
-                                <View style={styles.notificationHeader}>
-                                    <Text style={[
-                                        styles.notificationTitle,
-                                        !notification.isRead && styles.unreadTitle,
-                                    ]}>
-                                        {notification.title}
-                                    </Text>
-                                    {!notification.isRead && (
-                                        <View style={styles.unreadDot} />
-                                    )}
+            {loading ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#C03825" />
+                    <Text style={styles.loadingText}>{t('loading')}</Text>
+                </View>
+            ) : (
+                <ScrollView
+                    style={styles.scrollView}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.scrollContent}
+                >
+                    {notifications.length === 0 ? (
+                        <View style={styles.emptyContainer}>
+                            <Ionicons name="notifications-off-outline" size={80} color="#CCC" />
+                            <Text style={styles.emptyTitle}>{t('noNotifications')}</Text>
+                            <Text style={styles.emptyMessage}>{t('noNotificationsMessage')}</Text>
+                        </View>
+                    ) : (
+                        notifications.map((notification) => (
+                            <TouchableOpacity
+                                key={notification.id}
+                                style={[
+                                    styles.notificationCard,
+                                    !notification.isRead && styles.unreadCard,
+                                ]}
+                                onPress={() => handleMarkAsRead(notification.id)}
+                                activeOpacity={0.7}
+                            >
+                                <View style={styles.notificationIcon}>
+                                    <Ionicons
+                                        name={getIconName(notification.type)}
+                                        size={28}
+                                        color={getIconColor(notification.type)}
+                                    />
                                 </View>
-                                <Text style={styles.notificationMessage}>
-                                    {notification.message}
-                                </Text>
-                                <View style={styles.notificationFooter}>
-                                    <Ionicons name="time-outline" size={14} color="#999" />
-                                    <Text style={styles.notificationTime}>
-                                        {notification.time}
+                                <View style={styles.notificationContent}>
+                                    <View style={styles.notificationHeader}>
+                                        <Text style={[
+                                            styles.notificationTitle,
+                                            !notification.isRead && styles.unreadTitle,
+                                        ]}>
+                                            {notification.title}
+                                        </Text>
+                                        {!notification.isRead && (
+                                            <View style={styles.unreadDot} />
+                                        )}
+                                    </View>
+                                    <Text style={styles.notificationMessage}>
+                                        {notification.body}
                                     </Text>
+                                    <View style={styles.notificationFooter}>
+                                        <Ionicons name="time-outline" size={14} color="#999" />
+                                        <Text style={styles.notificationTime}>
+                                            {getTimeAgo(notification.createdAt)}
+                                        </Text>
+                                    </View>
                                 </View>
-                            </View>
-                        </TouchableOpacity>
-                    ))
-                )}
-            </ScrollView>
+                            </TouchableOpacity>
+                        ))
+                    )}
+                </ScrollView>
+            )}
         </View>
     );
 }
@@ -249,6 +258,18 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         padding: 20,
+    },
+    loadingContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 100,
+    },
+    loadingText: {
+        fontSize: 16,
+        fontFamily: Fonts.regular,
+        color: '#999',
+        marginTop: 12,
     },
     emptyContainer: {
         flex: 1,

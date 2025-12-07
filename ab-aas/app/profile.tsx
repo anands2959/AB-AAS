@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -9,12 +9,15 @@ import {
     Image,
     Platform,
     Alert,
+    ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Fonts } from '@/constants/theme';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useUser } from '@/contexts/UserContext';
+import { updateUser } from '@/services/userService';
 import DisabilityModal from '@/components/DisabilityModal';
 import GenderModal from '@/components/GenderModal';
 import StateDistrictModal from '@/components/StateDistrictModal';
@@ -22,6 +25,7 @@ import StateDistrictModal from '@/components/StateDistrictModal';
 export default function ProfileScreen() {
     const router = useRouter();
     const { t } = useLanguage();
+    const { userData, loadUserData } = useUser();
     const [fullName, setFullName] = useState('');
     const [gender, setGender] = useState('');
     const [dob, setDob] = useState('');
@@ -42,6 +46,26 @@ export default function ProfileScreen() {
     const [fetchingPincode, setFetchingPincode] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>(undefined);
+    const [saving, setSaving] = useState(false);
+
+    // Load user data when component mounts
+    useEffect(() => {
+        if (userData) {
+            setFullName(userData.fullName || '');
+            setGender(userData.gender || '');
+            setDob(userData.dob || '');
+            setPhoneNumber(userData.phoneNumber || '');
+            setAlternateMobile(userData.alternateMobile || '');
+            setDisabilityType(userData.disabilityType || '');
+            setDisabilityPercentage(userData.disabilityPercentage || '');
+            setPinCode(userData.pinCode || '');
+            setState(userData.state || '');
+            setDistrict(userData.district || '');
+            setAddress(userData.address || '');
+            setAadharNumber(userData.aadharNumber || '');
+            setMonthlyIncome(userData.monthlyIncome || '');
+        }
+    }, [userData]);
 
     const fetchLocationFromPincode = async (pincode: string) => {
         if (pincode.length !== 6) return;
@@ -74,9 +98,54 @@ export default function ProfileScreen() {
         }
     };
 
-    const handleSave = () => {
-        // Handle save logic
-        console.log('Profile saved');
+    const handleSave = async () => {
+        if (!userData?.phoneNumber) {
+            Alert.alert(t('error'), 'User not found. Please register first.');
+            return;
+        }
+
+        setSaving(true);
+
+        try {
+            const profileData = {
+                fullName,
+                gender,
+                dob,
+                phoneNumber,
+                alternateMobile,
+                disabilityType,
+                disabilityPercentage,
+                pinCode,
+                state,
+                district,
+                address,
+                aadharNumber,
+                monthlyIncome,
+            };
+
+            await updateUser(userData.phoneNumber, profileData);
+            await loadUserData(userData.phoneNumber);
+
+            // Alert.alert(
+            //     t('success'),
+            //     'Profile updated successfully!',
+            //     [
+            //         {
+            //             text: t('ok'),
+            //             onPress: () => router.back(),
+            //         },
+            //     ]
+            // );
+            router.back()
+        } catch (error) {
+            console.error('Error saving profile:', error);
+            Alert.alert(
+                t('error'),
+                'Failed to save profile. Please try again.'
+            );
+        } finally {
+            setSaving(false);
+        }
     };
 
     return (
@@ -94,7 +163,7 @@ export default function ProfileScreen() {
                     >
                         <Ionicons name="chevron-back" size={24} color="#333" />
                     </TouchableOpacity>
-                    
+
                     {/* Profile Icon */}
                     <View style={styles.profileIconContainer}>
                         <View style={styles.profileIcon}>
@@ -103,7 +172,7 @@ export default function ProfileScreen() {
                         <Text style={styles.title}>{t('personalInformation')}</Text>
                     </View>
 
-                    
+
                 </View>
 
                 {/* Illustration */}
@@ -135,7 +204,7 @@ export default function ProfileScreen() {
                     <View style={styles.row}>
                         <View style={styles.halfInput}>
                             <Text style={styles.label}>{t('gender')}</Text>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={styles.dropdownInput}
                                 onPress={() => setGenderModalVisible(true)}
                             >
@@ -147,7 +216,7 @@ export default function ProfileScreen() {
                         </View>
                         <View style={styles.halfInput}>
                             <Text style={styles.label}>{t('dob')}</Text>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={styles.dropdownInput}
                                 onPress={() => setShowDatePicker(true)}
                             >
@@ -250,7 +319,7 @@ export default function ProfileScreen() {
                     <View style={styles.row}>
                         <View style={styles.halfInput}>
                             <Text style={styles.label}>{t('state')}</Text>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={styles.dropdownInput}
                                 onPress={() => setStateModalVisible(true)}
                             >
@@ -262,7 +331,7 @@ export default function ProfileScreen() {
                         </View>
                         <View style={styles.halfInput}>
                             <Text style={styles.label}>{t('district')}</Text>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={styles.dropdownInput}
                                 onPress={() => setDistrictModalVisible(true)}
                                 disabled={!state}
@@ -317,8 +386,16 @@ export default function ProfileScreen() {
                     </View>
 
                     {/* Save Button */}
-                    <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                        <Text style={styles.saveButtonText}>{t('save')}</Text>
+                    <TouchableOpacity
+                        style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                        onPress={handleSave}
+                        disabled={saving}
+                    >
+                        {saving ? (
+                            <ActivityIndicator color="#fff" size="small" />
+                        ) : (
+                            <Text style={styles.saveButtonText}>{t('save')}</Text>
+                        )}
                     </TouchableOpacity>
                 </View>
             </ScrollView>
@@ -537,11 +614,15 @@ const styles = StyleSheet.create({
     saveButton: {
         backgroundColor: '#C03825',
         borderRadius: 8,
-        borderWidth:2,
-        borderColor:'#fff',
+        borderWidth: 2,
+        borderColor: '#fff',
         paddingVertical: 16,
         alignItems: 'center',
         marginTop: 20,
+    },
+    saveButtonDisabled: {
+        backgroundColor: '#999',
+        opacity: 0.6,
     },
     saveButtonText: {
         fontSize: 16,

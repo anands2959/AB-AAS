@@ -9,18 +9,24 @@ import {
     Platform,
     ScrollView,
     Image,
+    Alert,
+    ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Fonts } from '@/constants/theme';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useUser } from '@/contexts/UserContext';
 import LanguageModal from '@/components/LanguageModal';
 import DisabilityModal from '@/components/DisabilityModal';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { registerUser } from '@/services/userService';
+import RegistrationSuccessModal from '@/components/RegistrationSuccessModal';
 
 export default function RegisterScreen() {
     const router = useRouter();
     const { t } = useLanguage();
+    const { setUserData, loadUserData } = useUser();
     const scrollViewRef = useRef<ScrollView>(null);
     const [fullName, setFullName] = useState('');
     const [dob, setDob] = useState('');
@@ -31,11 +37,53 @@ export default function RegisterScreen() {
     const [disabilityPercentage, setDisabilityPercentage] = useState('');
     const [languageModalVisible, setLanguageModalVisible] = useState(false);
     const [disabilityModalVisible, setDisabilityModalVisible] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [successModalVisible, setSuccessModalVisible] = useState(false);
+    const [isNewUser, setIsNewUser] = useState(true);
 
-    const handleContinue = () => {
-        // Add your registration logic here
-        if (fullName && dob && phoneNumber) {
-            router.replace('/dashboard');
+    const handleContinue = async () => {
+        // Validate required fields
+        if (!fullName || !dob || !phoneNumber) {
+            Alert.alert(t('error'), 'Please fill all required fields');
+            return;
+        }
+
+        setLoading(true);
+        
+        try {
+            const userData = {
+                phoneNumber,
+                fullName,
+                dob,
+                disabilityType,
+                disabilityPercentage,
+            };
+
+            const result = await registerUser(userData);
+
+            // Save user data to context
+            setUserData(result.userData);
+            await loadUserData(phoneNumber);
+
+            // Update form with user data (for existing users)
+            if (!result.isNewUser) {
+                setFullName(result.userData.fullName);
+                setDob(result.userData.dob);
+                setDisabilityType(result.userData.disabilityType);
+                setDisabilityPercentage(result.userData.disabilityPercentage);
+            }
+
+            // Show success modal
+            setIsNewUser(result.isNewUser);
+            setSuccessModalVisible(true);
+        } catch (error) {
+            console.error('Registration error:', error);
+            Alert.alert(
+                t('error'),
+                'Failed to register. Please check your internet connection and try again.'
+            );
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -253,18 +301,30 @@ export default function RegisterScreen() {
                         </View>
 
                         {/* Privacy Policy Text */}
-                        <Text style={styles.privacyText}>
-                            {t('privacyPolicy')}{' '}
-                            <Text style={styles.privacyLink}>{t('privacyPolicyLink')}</Text> {t('and')}{' '}
-                            <Text style={styles.privacyLink}>{t('termsOfUse')}</Text>
-                        </Text>
+                        <View style={styles.privacyContainer}>
+                            <Text style={styles.privacyText}>
+                                {t('privacyPolicy')}{' '}
+                            </Text>
+                            <TouchableOpacity onPress={() => router.push('/privacy')}>
+                                <Text style={styles.privacyLink}>{t('privacyPolicyLink')}</Text>
+                            </TouchableOpacity>
+                            <Text style={styles.privacyText}> {t('and')} </Text>
+                            <TouchableOpacity onPress={() => router.push('/terms')}>
+                                <Text style={styles.privacyLink}>{t('termsOfUse')}</Text>
+                            </TouchableOpacity>
+                        </View>
 
                         {/* Continue Button */}
                         <TouchableOpacity
-                            style={styles.continueButton}
+                            style={[styles.continueButton, loading && styles.continueButtonDisabled]}
                             onPress={handleContinue}
+                            disabled={loading}
                         >
-                            <Text style={styles.continueButtonText}>{t('continue')}</Text>
+                            {loading ? (
+                                <ActivityIndicator color="#fff" size="small" />
+                            ) : (
+                                <Text style={styles.continueButtonText}>{t('continue')}</Text>
+                            )}
                         </TouchableOpacity>
                     </View>
                 </ScrollView>
@@ -279,6 +339,16 @@ export default function RegisterScreen() {
                     onClose={() => setDisabilityModalVisible(false)}
                     onSelect={setDisabilityType}
                     selectedDisability={disabilityType}
+                />
+
+                <RegistrationSuccessModal
+                    visible={successModalVisible}
+                    isNewUser={isNewUser}
+                    userName={fullName}
+                    onClose={() => {
+                        setSuccessModalVisible(false);
+                        router.replace('/dashboard');
+                    }}
                 />
             </KeyboardAvoidingView>
         </LinearGradient>
@@ -454,18 +524,27 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#666',
     },
+    privacyContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 20,
+        marginBottom: 20,
+        paddingHorizontal: 10,
+    },
     privacyText: {
         fontSize: 12,
         fontFamily: Fonts.regular,
         color: '#C03825',
-        textAlign: 'center',
-        marginTop: 20,
-        marginBottom: 20,
         lineHeight: 18,
     },
     privacyLink: {
+        fontSize: 12,
         fontFamily: Fonts.semiBold,
+        color: '#C03825',
         textDecorationLine: 'underline',
+        lineHeight: 18,
     },
     continueButton: {
         backgroundColor: '#C03825',
@@ -479,6 +558,10 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 8,
         elevation: 5,
+    },
+    continueButtonDisabled: {
+        backgroundColor: '#999',
+        opacity: 0.6,
     },
     continueButtonText: {
         fontSize: 20,

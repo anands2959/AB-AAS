@@ -8,44 +8,49 @@ import {
     TextInput,
     Linking,
     Alert,
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Fonts } from '@/constants/theme';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useUser } from '@/contexts/UserContext';
+import { submitSupportQuery } from '@/services/supportService';
 
 export default function SupportScreen() {
     const router = useRouter();
     const { t } = useLanguage();
+    const { userData } = useUser();
     const [selectedTab, setSelectedTab] = useState<'contact' | 'faq' | 'helpdesk'>('contact');
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
     const [message, setMessage] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const contactOptions = [
         {
             id: 'phone',
             title: t('callUs'),
-            subtitle: '+91 1800-XXX-XXXX',
+            subtitle: '+91 8004125330',
             icon: 'call',
             color: '#4CAF50',
-            action: () => Linking.openURL('tel:1800XXXXXXX'),
+            action: () => Linking.openURL('tel:8004125330'),
         },
         {
             id: 'whatsapp',
             title: t('whatsappSupport'),
-            subtitle: '+91 98765-XXXXX',
+            subtitle: '+91 8004125330',
             icon: 'logo-whatsapp',
             color: '#25D366',
-            action: () => Linking.openURL('https://wa.me/919876XXXXXX'),
+            action: () => Linking.openURL('https://wa.me/8004125330'),
         },
         {
             id: 'email',
             title: t('emailUs'),
-            subtitle: 'support@abaas.org',
+            subtitle: 'ashtavakramuni@gmail.com',
             icon: 'mail',
             color: '#2196F3',
-            action: () => Linking.openURL('mailto:support@abaas.org'),
+            action: () => Linking.openURL('mailto:ashtavakramuni@gmail.com'),
         },
         {
             id: 'location',
@@ -55,7 +60,7 @@ export default function SupportScreen() {
             color: '#FF5722',
             action: () => {
                 // Open maps with organization location
-                Linking.openURL('https://maps.google.com');
+                Linking.openURL('https://maps.app.goo.gl/ydvn7tfRBoQ2gWBK9');
             },
         },
     ];
@@ -90,31 +95,47 @@ export default function SupportScreen() {
 
     const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
 
-    const handleSubmitQuery = () => {
-        if (!name || !email || !message) {
+    const handleSubmitQuery = async () => {
+        if (!message.trim()) {
             Alert.alert(t('error'), t('fillAllFields'));
             return;
         }
 
-        // Here you would typically send the query to your backend
-        Alert.alert(
-            t('success'),
-            t('querySubmitted'),
-            [
-                {
-                    text: t('ok'),
-                    onPress: () => {
-                        setName('');
-                        setEmail('');
-                        setMessage('');
-                    },
-                },
-            ]
-        );
+        setIsSubmitting(true);
+
+        try {
+            // Submit query to Firebase
+            await submitSupportQuery(userData?.phoneNumber, message.trim());
+
+            // Alert.alert(
+            //     t('success'),
+            //     t('querySubmitted'),
+            //     [
+            //         {
+            //             text: t('ok'),
+            //             onPress: () => {
+            //                 setMessage('');
+            //             },
+            //         },
+            //     ]
+            // );
+        } catch (error) {
+            console.error('Error submitting query:', error);
+            Alert.alert(
+                t('error'),
+                'Failed to submit your query. Please try again.'
+            );
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
-        <View style={styles.container}>
+        <KeyboardAvoidingView 
+            style={styles.container}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={0}
+        >
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity
@@ -183,6 +204,7 @@ export default function SupportScreen() {
                 style={styles.scrollView}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
             >
                 {/* Contact Tab */}
                 {selectedTab === 'contact' && (
@@ -265,28 +287,15 @@ export default function SupportScreen() {
                         </Text>
 
                         <View style={styles.form}>
-                            <View style={styles.inputContainer}>
-                                <Text style={styles.label}>{t('fullName')}</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder={t('enterName')}
-                                    value={name}
-                                    onChangeText={setName}
-                                    placeholderTextColor="#999"
-                                />
-                            </View>
-
-                            <View style={styles.inputContainer}>
-                                <Text style={styles.label}>{t('email')}</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder={t('enterEmail')}
-                                    value={email}
-                                    onChangeText={setEmail}
-                                    keyboardType="email-address"
-                                    placeholderTextColor="#999"
-                                />
-                            </View>
+                            {userData?.phoneNumber && (
+                                <View style={styles.userInfoCard}>
+                                    <Ionicons name="person-circle-outline" size={24} color="#C03825" />
+                                    <View style={styles.userInfoContent}>
+                                        <Text style={styles.userInfoLabel}>{t('name')}</Text>
+                                        <Text style={styles.userInfoValue}>{userData.fullName}</Text>
+                                    </View>
+                                </View>
+                            )}
 
                             <View style={styles.inputContainer}>
                                 <Text style={styles.label}>{t('yourMessage')}</Text>
@@ -299,20 +308,26 @@ export default function SupportScreen() {
                                     numberOfLines={5}
                                     textAlignVertical="top"
                                     placeholderTextColor="#999"
+                                    editable={!isSubmitting}
                                 />
                             </View>
 
                             <TouchableOpacity 
-                                style={styles.submitButton}
+                                style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
                                 onPress={handleSubmitQuery}
+                                disabled={isSubmitting}
                             >
-                                <Text style={styles.submitButtonText}>{t('submitQuery')}</Text>
+                                {isSubmitting ? (
+                                    <ActivityIndicator color="#fff" />
+                                ) : (
+                                    <Text style={styles.submitButtonText}>{t('submitQuery')}</Text>
+                                )}
                             </TouchableOpacity>
                         </View>
                     </View>
                 )}
             </ScrollView>
-        </View>
+        </KeyboardAvoidingView>
     );
 }
 
@@ -383,21 +398,20 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontFamily: Fonts.bold,
         color: '#333',
-        marginBottom: 8,
     },
     sectionDescription: {
         fontSize: 14,
         fontFamily: Fonts.regular,
         color: '#666',
-        marginBottom: 20,
-        lineHeight: 20,
+        marginBottom: 16,
+        lineHeight: 16,
     },
     contactCard: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#fff',
         borderRadius: 12,
-        padding: 16,
+        padding: 10,
         marginBottom: 12,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -406,8 +420,8 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     contactIcon: {
-        width: 56,
-        height: 56,
+        width: 45,
+        height: 45,
         borderRadius: 28,
         justifyContent: 'center',
         alignItems: 'center',
@@ -431,8 +445,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         backgroundColor: '#FFF5F3',
         borderRadius: 12,
-        padding: 16,
-        marginTop: 8,
+        padding: 10,
+        // marginTop: 8,
         borderWidth: 1,
         borderColor: '#FFE5E0',
     },
@@ -523,9 +537,38 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginTop: 8,
     },
+    submitButtonDisabled: {
+        backgroundColor: '#999',
+        opacity: 0.6,
+    },
     submitButtonText: {
         fontSize: 16,
         fontFamily: Fonts.semiBold,
         color: '#fff',
+    },
+    userInfoCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFF5F3',
+        borderRadius: 8,
+        padding: 12,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#FFE5E0',
+    },
+    userInfoContent: {
+        flex: 1,
+        marginLeft: 12,
+    },
+    userInfoLabel: {
+        fontSize: 12,
+        fontFamily: Fonts.medium,
+        color: '#999',
+        marginBottom: 2,
+    },
+    userInfoValue: {
+        fontSize: 14,
+        fontFamily: Fonts.semiBold,
+        color: '#333',
     },
 });

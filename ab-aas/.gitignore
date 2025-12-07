@@ -41,3 +41,16 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Documentation (keep only README.md)
+*.md
+!README.md
+
+# Build artifacts
+*.apk
+*.aab
+*.ipa
+
+# Cache
+.cache/
+*.log

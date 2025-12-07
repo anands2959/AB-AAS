@@ -3,9 +3,11 @@ import { View, Text, StyleSheet, Animated, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Fonts } from '@/constants/theme';
+import { useUser } from '@/contexts/UserContext';
 
 export default function SplashScreen() {
   const router = useRouter();
+  const { userData, isLoading } = useUser();
   const sunRotation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -17,13 +19,36 @@ export default function SplashScreen() {
         useNativeDriver: true,
       })
     ).start();
-
-    const timer = setTimeout(() => {
-      router.replace('/onboarding');
-    }, 5000);
-
-    return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    // Wait for UserContext to finish loading, then navigate
+    if (!isLoading) {
+      checkAuthAndNavigate();
+    }
+  }, [isLoading]);
+
+  const checkAuthAndNavigate = async () => {
+    try {
+      // Wait for minimum splash duration (2 seconds)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Check if user data is loaded
+      if (userData && userData.phoneNumber) {
+        // User is logged in, go to dashboard
+        console.log('✅ User authenticated, navigating to dashboard');
+        router.replace('/dashboard');
+      } else {
+        // No user logged in, go to onboarding
+        console.log('❌ No user found, navigating to onboarding');
+        router.replace('/onboarding');
+      }
+    } catch (error) {
+      console.error('Error checking auth:', error);
+      // On error, go to onboarding
+      router.replace('/onboarding');
+    }
+  };
 
   return (
     <LinearGradient

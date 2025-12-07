@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     Modal,
     View,
@@ -7,13 +7,15 @@ import {
     StyleSheet,
     Animated,
     Dimensions,
-    SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Fonts } from '@/constants/theme';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useUser } from '@/contexts/UserContext';
+import LogoutModal from './LogoutModal';
 
 interface DrawerMenuProps {
     visible: boolean;
@@ -25,10 +27,12 @@ const DRAWER_WIDTH = width * 0.75;
 
 export default function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
     const { t } = useLanguage();
+    const { clearUserData } = useUser();
     const router = useRouter();
     const pathname = usePathname();
     const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
     const fadeAnim = useRef(new Animated.Value(0)).current;
+    const [logoutModalVisible, setLogoutModalVisible] = useState(false);
 
     useEffect(() => {
         if (visible) {
@@ -67,11 +71,26 @@ export default function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
         });
     };
 
+    const handleLogout = () => {
+        setLogoutModalVisible(true);
+    };
+
+    const handleLogoutConfirm = async () => {
+        setLogoutModalVisible(false);
+        handleClose();
+        await clearUserData();
+        router.replace('/onboarding');
+    };
+
+    const handleLogoutCancel = () => {
+        setLogoutModalVisible(false);
+    };
+
     const menuItems = [
         { id: 'dashboard', label: t('dashboard'), iconName: 'grid-outline' as const, route: '/dashboard' as const },
         { id: 'profile', label: t('profile'), iconName: 'person-outline' as const, route: '/profile' as const },
         { id: 'faq', label: t('faq'), iconName: 'help-circle-outline' as const, route: '/faq' as const },
-        { id: 'privacy', label: t('privacyPolicy'), iconName: 'lock-closed-outline' as const, route: '/privacy' as const },
+        { id: 'privacy', label: t('privacy'), iconName: 'lock-closed-outline' as const, route: '/privacy' as const },
     ];
 
     return (
@@ -148,6 +167,22 @@ export default function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
                                     </TouchableOpacity>
                                 );
                             })}
+
+                            {/* Logout Button */}
+                            <TouchableOpacity
+                                style={styles.logoutButton}
+                                onPress={handleLogout}
+                                activeOpacity={0.7}
+                            >
+                                <View style={styles.logoutIconContainer}>
+                                    <Ionicons 
+                                        name="log-out-outline" 
+                                        size={22} 
+                                        color="#fff" 
+                                    />
+                                </View>
+                                <Text style={styles.logoutLabel}>{t('logout')}</Text>
+                            </TouchableOpacity>
                         </View>
 
                             {/* Footer */}
@@ -158,6 +193,13 @@ export default function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
                     </LinearGradient>
                 </Animated.View>
             </Animated.View>
+
+            {/* Logout Confirmation Modal */}
+            <LogoutModal
+                visible={logoutModalVisible}
+                onConfirm={handleLogoutConfirm}
+                onCancel={handleLogoutCancel}
+            />
         </Modal>
     );
 }
@@ -253,6 +295,31 @@ const styles = StyleSheet.create({
     menuLabelActive: {
         color: '#C03825',
         fontFamily: Fonts.semiBold,
+    },
+    logoutButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: 20,
+        marginTop: 10,
+        marginHorizontal: 20,
+        backgroundColor: '#C03825',
+        borderRadius: 12,
+    },
+    logoutIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 16,
+    },
+    logoutLabel: {
+        flex: 1,
+        fontSize: 16,
+        fontFamily: Fonts.semiBold,
+        color: '#fff',
     },
     drawerFooter: {
         padding: 20,

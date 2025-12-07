@@ -3,13 +3,20 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'rea
 import { useRouter } from 'expo-router';
 import { Fonts } from '@/constants/theme';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useUser } from '@/contexts/UserContext';
+import { useNotification } from '@/contexts/NotificationContext';
+import { calculateProfileCompletion, getProfileCompletionColor } from '@/utils/profileCompletion';
 import LanguageModal from '@/components/LanguageModal';
 import DrawerMenu from '@/components/DrawerMenu';
 import FlippableCard from '@/components/FlippableCard';
+import CircularProgress from '@/components/CircularProgress';
 
 export default function DashboardScreen() {
   const { t } = useLanguage();
+  const { userData } = useUser();
+  const { unreadCount } = useNotification();
   const router = useRouter();
+  const profileCompletion = calculateProfileCompletion(userData);
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
 
@@ -41,7 +48,9 @@ export default function DashboardScreen() {
           </TouchableOpacity>
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>{t('dashboard')}</Text>
-            <Text style={styles.headerSubtitle}>{getGreeting()}</Text>
+            <Text style={styles.headerSubtitle}>
+              {getGreeting()}
+            </Text>
           </View>
           <View style={styles.headerRight}>
             <TouchableOpacity 
@@ -59,7 +68,9 @@ export default function DashboardScreen() {
               onPress={() => router.push('/notifications')}
             >
               <Text style={styles.notificationIcon}>🔔</Text>
-              <View style={styles.notificationBadge} />
+              {unreadCount > 0 && (
+                <View style={styles.notificationBadge} />
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -72,9 +83,21 @@ export default function DashboardScreen() {
           style={styles.completeProfileButton}
           onPress={() => router.push('/profile')}
         >
-          <Text style={styles.completeProfileText}>{t('completeProfile')}</Text>
-          <View style={styles.profilePercentage}>
-            <Text style={styles.profilePercentageText}>40%</Text>
+          <View style={styles.completeProfileContent}>
+            <Text style={styles.completeProfileText}>{t('completeProfile')}</Text>
+            {/* {profileCompletion < 100 && (
+              <Text style={styles.completeProfileSubtext}>
+                {13 - Math.round((profileCompletion / 100) * 13)} fields remaining
+              </Text>
+            )} */}
+          </View>
+          <View style={styles.profilePercentageContainer}>
+            <CircularProgress
+              percentage={profileCompletion}
+              size={50}
+              strokeWidth={3}
+              color={getProfileCompletionColor(profileCompletion)}
+            />
           </View>
         </TouchableOpacity>
 
@@ -238,25 +261,26 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
+  completeProfileContent: {
+    flex: 1,
+  },
   completeProfileText: {
     fontSize: 18,
     fontFamily: Fonts.bold,
     color: '#fff',
   },
-  profilePercentage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#C03825',
+  completeProfileSubtext: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: '#FFE5E0',
+    marginTop: 4,
+  },
+  profilePercentageContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#E8935C',
-  },
-  profilePercentageText: {
-    fontSize: 14,
-    fontFamily: Fonts.bold,
-    color: '#fff',
+    // backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    // borderRadius: 35,
+    // padding: 5,
   },
   actionCardsGrid: {
     flexDirection: 'row',

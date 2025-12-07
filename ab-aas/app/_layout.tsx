@@ -1,15 +1,19 @@
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
 import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold, Poppins_700Bold } from '@expo-google-fonts/poppins';
 import { LexendDeca_400Regular, LexendDeca_500Medium, LexendDeca_600SemiBold, LexendDeca_700Bold } from '@expo-google-fonts/lexend-deca';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { LanguageProvider } from '@/contexts/LanguageContext';
+import { UserProvider } from '@/contexts/UserContext';
+import { NotificationProvider } from '@/contexts/NotificationContext';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 // Hide the splash screen immediately to show custom splash
-SplashScreen.hideAsync();
+SplashScreen.hideAsync().catch(() => {
+  // Splash screen already hidden
+});
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -29,16 +33,31 @@ export default function RootLayout() {
   }, [fontsLoaded]);
 
   return (
-    <LanguageProvider>
-      <ThemeProvider value={DefaultTheme}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="onboarding" />
-          <Stack.Screen name="register" />
-          <Stack.Screen name="dashboard" />
-        </Stack>
-        <StatusBar style="dark" />
-      </ThemeProvider>
-    </LanguageProvider>
+    <ErrorBoundary>
+      <UserProvider>
+        <LanguageProvider>
+          <NotificationProvider>
+            <ThemeProvider value={DefaultTheme}>
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="index" />
+                <Stack.Screen name="onboarding" />
+                <Stack.Screen name="register" />
+                <Stack.Screen name="dashboard" />
+              </Stack>
+              <StatusBar style="dark" />
+            </ThemeProvider>
+          </NotificationProvider>
+        </LanguageProvider>
+      </UserProvider>
+    </ErrorBoundary>
   );
+}
+
+// Configure reanimated (only needed for production builds)
+if (typeof global !== 'undefined') {
+  try {
+    require('react-native-reanimated');
+  } catch (e) {
+    // Reanimated not available in Expo Go, ignore
+  }
 }

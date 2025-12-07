@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useMemo, useCallback } from 'react';
+import { translations } from '../translations';
 
 export type Language = 'en' | 'hi' | 'bn' | 'te' | 'mr' | 'ta' | 'ur' | 'gu';
 
@@ -25,13 +26,18 @@ interface LanguageProviderProps {
 export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) => {
     const [language, setLanguage] = useState<Language>('en');
 
-    const t = (key: string): string => {
-        const translations = require('../translations').translations;
+    const t = useCallback((key: string): string => {
         return translations[language]?.[key] || key;
-    };
+    }, [language]);
+
+    const value = useMemo(() => ({
+        language,
+        setLanguage,
+        t
+    }), [language, t]);
 
     return (
-        <LanguageContext.Provider value={{ language, setLanguage, t }}>
+        <LanguageContext.Provider value={value}>
             {children}
         </LanguageContext.Provider>
     );

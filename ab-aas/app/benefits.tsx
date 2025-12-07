@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -6,12 +6,17 @@ import {
     ScrollView,
     TouchableOpacity,
     Image,
+    Alert,
+    ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Fonts } from '@/constants/theme';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useUser } from '@/contexts/UserContext';
 import SuccessModal from '@/components/SuccessModal';
+import BenefitConfirmationModal from '@/components/BenefitConfirmationModal';
+import { applyForBenefit, getUserAppliedBenefits } from '@/services/benefitService';
 
 interface Benefit {
     id: string;
@@ -26,16 +31,86 @@ interface Benefit {
 export default function BenefitsScreen() {
     const router = useRouter();
     const { t } = useLanguage();
+    const { userData } = useUser();
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [successModalVisible, setSuccessModalVisible] = useState(false);
+    const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+    const [appliedBenefitIds, setAppliedBenefitIds] = useState<string[]>([]);
+    const [isApplying, setIsApplying] = useState(false);
+    const [selectedBenefit, setSelectedBenefit] = useState<Benefit | null>(null);
 
-    const handleApplyBenefit = () => {
-        setSuccessModalVisible(true);
+    useEffect(() => {
+        loadAppliedBenefits();
+    }, [userData]);
+
+    const loadAppliedBenefits = async () => {
+        if (userData?.phoneNumber) {
+            try {
+                const appliedIds = await getUserAppliedBenefits(userData.phoneNumber);
+                setAppliedBenefitIds(appliedIds);
+            } catch (error) {
+                console.error('Error loading applied benefits:', error);
+            }
+        }
+    };
+
+    const handleApplyBenefit = (benefit: Benefit) => {
+        if (!userData?.phoneNumber) {
+            Alert.alert('Error', 'Please login to apply for benefits');
+            return;
+        }
+
+        // Check if already applied
+        if (appliedBenefitIds.includes(benefit.id)) {
+            Alert.alert('Already Applied', 'You have already applied for this benefit');
+            return;
+        }
+
+        // Show confirmation modal
+        setSelectedBenefit(benefit);
+        setConfirmModalVisible(true);
+    };
+
+    const handleConfirmApplication = async () => {
+        if (!selectedBenefit || !userData?.phoneNumber) return;
+
+        setIsApplying(true);
+
+        try {
+            await applyForBenefit(
+                userData.phoneNumber,
+                selectedBenefit.id,
+                selectedBenefit.title,
+                selectedBenefit.category
+            );
+
+            // Update local state
+            setAppliedBenefitIds([...appliedBenefitIds, selectedBenefit.id]);
+            
+            // Close confirmation modal and show success modal
+            setConfirmModalVisible(false);
+            setSuccessModalVisible(true);
+        } catch (error: any) {
+            console.error('Error applying for benefit:', error);
+            setConfirmModalVisible(false);
+            Alert.alert(
+                'Application Failed',
+                error.message || 'Failed to apply for benefit. Please try again.'
+            );
+        } finally {
+            setIsApplying(false);
+        }
+    };
+
+    const handleCancelApplication = () => {
+        setConfirmModalVisible(false);
+        setSelectedBenefit(null);
     };
 
     const handleCloseSuccessModal = () => {
         setSuccessModalVisible(false);
-        router.push('/dashboard');
+        setSelectedBenefit(null);
+        router.replace('/dashboard');
     };
 
     const categories = [
@@ -186,40 +261,64 @@ export default function BenefitsScreen() {
                     {t('availableBenefits')} ({filteredBenefits.length})
                 </Text>
 
-                {filteredBenefits.map((benefit) => (
-                    <TouchableOpacity
-                        key={benefit.id}
-                        style={styles.benefitCard}
-                        onPress={handleApplyBenefit}
-                        activeOpacity={0.7}
-                    >
-                        <View style={styles.benefitIconContainer}>
-                            <Ionicons name={benefit.icon as any} size={28} color="#C03825" />
-                        </View>
-                        <View style={styles.benefitContent}>
-                            <Text style={styles.benefitTitle}>{benefit.title}</Text>
-                            <Text style={styles.benefitDescription} numberOfLines={2}>
-                                {benefit.description}
-                            </Text>
-                            <View style={styles.benefitMeta}>
-                                <View style={styles.metaItem}>
-                                    <Ionicons name="people-outline" size={14} color="#666" />
-                                    <Text style={styles.metaText}>{benefit.eligibility}</Text>
+                {filteredBenefits.map((benefit) => {
+                    const isApplied = appliedBenefitIds.includes(benefit.id);
+
+                    return (
+                        <TouchableOpacity
+                            key={benefit.id}
+                            style={[
+                                styles.benefitCard,
+                                isApplied && styles.benefitCardApplied,
+                            ]}
+                            onPress={() => handleApplyBenefit(benefit)}
+                            activeOpacity={0.7}
+                            disabled={isApplied}
+                        >
+                            <View style={[
+                                styles.benefitIconContainer,
+                                isApplied && styles.benefitIconContainerApplied,
+                            ]}>
+                                <Ionicons 
+                                    name={isApplied ? 'checkmark-circle' : benefit.icon as any} 
+                                    size={28} 
+                                    color={isApplied ? '#4CAF50' : '#C03825'} 
+                                />
+                            </View>
+                            <View style={styles.benefitContent}>
+                                <View style={styles.benefitTitleRow}>
+                                    <Text style={styles.benefitTitle}>{benefit.title}</Text>
+                                    {isApplied && (
+                                        <View style={styles.appliedBadge}>
+                                            <Text style={styles.appliedBadgeText}>Applied</Text>
+                                        </View>
+                                    )}
                                 </View>
-                                {benefit.amount && (
+                                <Text style={styles.benefitDescription} numberOfLines={2}>
+                                    {benefit.description}
+                                </Text>
+                                <View style={styles.benefitMeta}>
                                     <View style={styles.metaItem}>
-                                        <Ionicons name="cash-outline" size={14} color="#666" />
-                                        <Text style={styles.metaText}>{benefit.amount}</Text>
+                                        <Ionicons name="people-outline" size={14} color="#666" />
+                                        <Text style={styles.metaText}>{benefit.eligibility}</Text>
+                                    </View>
+                                    {benefit.amount && (
+                                        <View style={styles.metaItem}>
+                                            <Ionicons name="cash-outline" size={14} color="#666" />
+                                            <Text style={styles.metaText}>{benefit.amount}</Text>
+                                        </View>
+                                    )}
+                                </View>
+                                {!isApplied && (
+                                    <View style={styles.applyButton}>
+                                        <Text style={styles.applyButtonText}>{t('applyNow')}</Text>
+                                        <Ionicons name="arrow-forward" size={16} color="#C03825" />
                                     </View>
                                 )}
                             </View>
-                            <View style={styles.applyButton}>
-                                <Text style={styles.applyButtonText}>{t('applyNow')}</Text>
-                                <Ionicons name="arrow-forward" size={16} color="#C03825" />
-                            </View>
-                        </View>
-                    </TouchableOpacity>
-                ))}
+                        </TouchableOpacity>
+                    );
+                })}
 
                 {filteredBenefits.length === 0 && (
                     <View style={styles.emptyContainer}>
@@ -229,6 +328,14 @@ export default function BenefitsScreen() {
                     </View>
                 )}
             </ScrollView>
+
+            <BenefitConfirmationModal
+                visible={confirmModalVisible}
+                benefit={selectedBenefit}
+                isLoading={isApplying}
+                onConfirm={handleConfirmApplication}
+                onCancel={handleCancelApplication}
+            />
 
             <SuccessModal
                 visible={successModalVisible}
@@ -348,6 +455,12 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 2,
     },
+    benefitCardApplied: {
+        backgroundColor: '#F5F5F5',
+        borderWidth: 2,
+        borderColor: '#4CAF50',
+        opacity: 0.7,
+    },
     benefitIconContainer: {
         width: 56,
         height: 56,
@@ -357,14 +470,35 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginRight: 12,
     },
+    benefitIconContainerApplied: {
+        backgroundColor: '#E8F5E9',
+    },
     benefitContent: {
         flex: 1,
+    },
+    benefitTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 4,
     },
     benefitTitle: {
         fontSize: 16,
         fontFamily: Fonts.semiBold,
         color: '#333',
-        marginBottom: 4,
+        flex: 1,
+    },
+    appliedBadge: {
+        backgroundColor: '#4CAF50',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 10,
+        marginLeft: 8,
+    },
+    appliedBadgeText: {
+        fontSize: 10,
+        fontFamily: Fonts.semiBold,
+        color: '#fff',
     },
     benefitDescription: {
         fontSize: 13,

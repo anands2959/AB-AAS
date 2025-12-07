@@ -11,9 +11,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Fonts } from '@/constants/theme';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useUser } from '@/contexts/UserContext';
 
 export default function FlippableCard() {
     const { t } = useLanguage();
+    const { userData } = useUser();
     const [isFlipped, setIsFlipped] = useState(false);
     const flipAnimation = useRef(new Animated.Value(0)).current;
     const sunRotation = useRef(new Animated.Value(0)).current;
@@ -110,17 +112,15 @@ export default function FlippableCard() {
                         <View style={styles.cardContent}>
                             <View style={styles.cardInfo}>
                                 <Text style={styles.cardLabel}>
-                                    {t('name')}: ........................
+                                    {t('name')}: {userData?.fullName || '........................'}
                                 </Text>
                                 <Text style={styles.cardLabel}>
-                                    {t('dob')}: ........................
+                                    {t('dob')}: {userData?.dob || '........................'}
                                 </Text>
                                 <Text style={styles.cardLabel}>
-                                    {t('phoneNumber')}: ........................
+                                    {t('phoneNumber')}: {userData?.phoneNumber || '........................'}
                                 </Text>
-                                <Text style={styles.cardLabel}>
-                                    {t('address')}: ........................
-                                </Text>
+                                
                             </View>
                             
 
@@ -183,7 +183,7 @@ export default function FlippableCard() {
                                 <Ionicons name="call" size={16} color="#fff" />
                                 <View style={styles.infoTextContainer}>
                                     <Text style={styles.infoLabel}>{t('helpline')}</Text>
-                                    <Text style={styles.infoValue}>1800-XXX-XXXX</Text>
+                                    <Text style={styles.infoValue}>+91 8004125330</Text>
                                 </View>
                             </View>
 
@@ -275,6 +275,7 @@ const styles = StyleSheet.create({
         fontFamily: Fonts.semiBold,
         color: '#fff',
         marginBottom: 2,
+        zIndex:20,
     },
     cardImage: {
         width:100,
@@ -284,7 +285,8 @@ const styles = StyleSheet.create({
     },
     cardFooter: {
         backgroundColor: '#B8432E',
-        paddingVertical: 2,
+        paddingVertical: 4,
+        marginTop:18,
         marginLeft: -10,
         marginRight: -10,
         paddingHorizontal: 12,

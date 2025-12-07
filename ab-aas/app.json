@@ -7,9 +7,13 @@
     "icon": "./assets/images/icon.png",
     "scheme": "abaas",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"]
+      },
+      "bundleIdentifier": "com.anands2959.abaas"
     },
     "android": {
       "adaptiveIcon": {
@@ -20,11 +24,21 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anands2959.abaas"
+      "package": "com.anands2959.abaas",
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "NOTIFICATIONS"
+      ],
+      "enableProguardInReleaseBuilds": true,
+      "enableShrinkResourcesInReleaseBuilds": true
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "bundler": "metro"
     },
     "splash": {
       "image": "./assets/images/splash-icon.png",
@@ -33,17 +47,32 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#C03825"
+        }
+      ]
     ],
+    "notification": {
+      "icon": "./assets/images/icon.png",
+      "color": "#C03825",
+      "androidMode": "default",
+      "androidCollapsedTitle": "AB AAS"
+    },
     "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
+      "typedRoutes": true
     },
     "extra": {
       "router": {},
       "eas": {
         "projectId": "48100b32-d1e0-4de2-9ae4-477e3222aed6"
       }
-    }
+    },
+    "assetBundlePatterns": [
+      "assets/**/*"
+    ]
   }
 }
