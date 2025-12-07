@@ -1,0 +1,135 @@
+[
+  {
+    "fullName": "Manish Kumar",
+    "phoneNumber": "7985165239",
+    "alternateMobile": "9876543210",
+    "dob": "12/04/1999",
+    "gender": "Male",
+    "aadharNumber": "1234 5678 9012",
+    "address": "Village Robertsganj, Near Post Office",
+    "district": "Sonbhadra",
+    "state": "Uttar Pradesh",
+    "pinCode": "231216",
+    "disabilityType": "blindness",
+    "disabilityPercentage": "12",
+    "monthlyIncome": "5000",
+    "appliedBenefits": [
+      {
+        "applicationId": "STCtPXCzI0hT8GdeG1qa",
+        "appliedAt": "2025-12-07T05:33:44.509Z",
+        "benefitId": "1",
+        "benefitTitle": "Disability Pension",
+        "status": "pending"
+      },
+      {
+        "applicationId": "ST0S0Bc2QzcAyZNseiF8",
+        "appliedAt": "2025-12-07T08:01:45.051Z",
+        "benefitId": "2",
+        "benefitTitle": "Education Scholarship",
+        "status": "pending"
+      },
+      {
+        "applicationId": "KCCLNB4AuYKpXm85Bspx",
+        "appliedAt": "2025-12-07T09:08:33.766Z",
+        "benefitId": "3",
+        "benefitTitle": "Free Healthcare",
+        "status": "pending"
+      }
+    ]
+  },
+  {
+    "fullName": "Priya Sharma",
+    "phoneNumber": "9876543211",
+    "alternateMobile": "",
+    "dob": "22/07/1990",
+    "gender": "Female",
+    "aadharNumber": "2345 6789 0123",
+    "address": "456 Nehru Street, Connaught Place",
+    "district": "New Delhi",
+    "state": "Delhi",
+    "pinCode": "110001",
+    "disabilityType": "hearing impairment",
+    "disabilityPercentage": "60",
+    "monthlyIncome": "8000",
+    "appliedBenefits": [
+      {
+        "applicationId": "APP001",
+        "appliedAt": "2025-12-05T10:00:00.000Z",
+        "benefitId": "1",
+        "benefitTitle": "Disability Pension",
+        "status": "approved"
+      }
+    ]
+  },
+  {
+    "fullName": "Amit Patel",
+    "phoneNumber": "9876543212",
+    "alternateMobile": "9123456789",
+    "dob": "10/11/1978",
+    "gender": "Male",
+    "aadharNumber": "3456 7890 1234",
+    "address": "789 MG Road, Whitefield",
+    "district": "Bangalore Urban",
+    "state": "Karnataka",
+    "pinCode": "560001",
+    "disabilityType": "mobility impairment",
+    "disabilityPercentage": "80",
+    "monthlyIncome": "12000",
+    "appliedBenefits": [
+      {
+        "applicationId": "APP002",
+        "appliedAt": "2025-12-01T14:30:00.000Z",
+        "benefitId": "2",
+        "benefitTitle": "Education Scholarship",
+        "status": "approved"
+      },
+      {
+        "applicationId": "APP003",
+        "appliedAt": "2025-12-03T09:15:00.000Z",
+        "benefitId": "4",
+        "benefitTitle": "Mobility Aid",
+        "status": "pending"
+      }
+    ]
+  },
+  {
+    "fullName": "Sunita Devi",
+    "phoneNumber": "9876543213",
+    "alternateMobile": "",
+    "dob": "05/01/1995",
+    "gender": "Female",
+    "aadharNumber": "",
+    "address": "321 Park Avenue, Salt Lake",
+    "district": "Kolkata",
+    "state": "West Bengal",
+    "pinCode": "700001",
+    "disabilityType": "speech impairment",
+    "disabilityPercentage": "45",
+    "monthlyIncome": "",
+    "appliedBenefits": []
+  },
+  {
+    "fullName": "Vikram Singh",
+    "phoneNumber": "9876543214",
+    "alternateMobile": "8765432109",
+    "dob": "18/09/1982",
+    "gender": "Male",
+    "aadharNumber": "5678 9012 3456",
+    "address": "654 Station Road, Civil Lines",
+    "district": "Jaipur",
+    "state": "Rajasthan",
+    "pinCode": "302001",
+    "disabilityType": "intellectual disability",
+    "disabilityPercentage": "55",
+    "monthlyIncome": "6000",
+    "appliedBenefits": [
+      {
+        "applicationId": "APP004",
+        "appliedAt": "2025-12-06T11:00:00.000Z",
+        "benefitId": "3",
+        "benefitTitle": "Free Healthcare",
+        "status": "rejected"
+      }
+    ]
+  }
+]

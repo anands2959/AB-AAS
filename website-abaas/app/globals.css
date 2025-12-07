@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+:root {
+  --background: #F1EFCE;
+  --foreground: #000000;
+  --primary: #CCB256;
+  --primary-hover: #B89E45;
+  --secondary: #C03825;
+  --secondary-hover: #A02E1E;
+  --card-bg: #FFFFFF;
+  --border: #E5DCC8;
+  --text-primary: #000000;
+  --text-secondary: #5D5D5D;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Force light theme with warm colors */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #F1EFCE;
+    --foreground: #000000;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Georgia', 'Times New Roman', serif;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.card-hover {
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.1), 0 4px 4px -2px rgba(0, 0, 0, 0.04);
+}
+
+/* Less rounded elements */
+.less-rounded {
+  border-radius: 6px;
+}
+
+.less-rounded-sm {
+  border-radius: 4px;
+}
+
+.less-rounded-lg {
+  border-radius: 8px;
+}
+
+/* Modal styles */
+body.modal-open {
+  overflow: hidden;
+}
+
+/* Ensure modal is always on top */
+[data-modal-backdrop] {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9998;
+}
+
+[data-modal-content] {
+  position: relative;
+  z-index: 9999;
+}
