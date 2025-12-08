@@ -1,7 +1,7 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { db } from '@/config/firebase';
-import { doc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
+import { doc,setDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
 
 // Check if we're in Expo Go (which doesn't support push notifications in SDK 53+)
 const isExpoGo = Constants.executionEnvironment === 'storeClient';
@@ -95,16 +95,38 @@ export async function registerForPushNotificationsAsync(): Promise<string | unde
 /**
  * Save push token to user's Firebase document
  */
+// export async function savePushTokenToFirebase(
+//   phoneNumber: string,
+//   pushToken: string
+// ): Promise<void> {
+//   try {
+//     const userRef = doc(db, 'users', phoneNumber);
+//     await updateDoc(userRef, {
+//       pushTokens: arrayUnion(pushToken),
+//       lastTokenUpdate: serverTimestamp(),
+//     });
+    
+//     console.log('Push token saved to Firebase');
+//   } catch (error) {
+//     console.error('Error saving push token:', error);
+//     throw error;
+//   }
+// }
+
 export async function savePushTokenToFirebase(
   phoneNumber: string,
   pushToken: string
 ): Promise<void> {
   try {
     const userRef = doc(db, 'users', phoneNumber);
-    await updateDoc(userRef, {
-      pushTokens: arrayUnion(pushToken),
-      lastTokenUpdate: serverTimestamp(),
-    });
+    await setDoc(
+      userRef,
+      {
+        pushTokens: arrayUnion(pushToken),
+        lastTokenUpdate: serverTimestamp(),
+      },
+      { merge: true } // 👈 important: do not overwrite whole doc
+    );
     console.log('Push token saved to Firebase');
   } catch (error) {
     console.error('Error saving push token:', error);

@@ -1,17 +1,17 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { useRouter } from 'expo-router';
 import {
-  registerForPushNotificationsAsync,
-  savePushTokenToFirebase,
   addNotificationReceivedListener,
   addNotificationResponseListener,
-  removeNotificationSubscription,
   clearBadgeCount,
+  registerForPushNotificationsAsync,
+  removeNotificationSubscription,
+  savePushTokenToFirebase,
 } from '@/services/notificationService';
 import {
   saveNotificationToFirestore,
   subscribeToUnreadCount,
 } from '@/services/userNotificationService';
+import { useRouter } from 'expo-router';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useUser } from './UserContext';
 
 interface NotificationContextType {
@@ -31,7 +31,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [unreadCount, setUnreadCount] = useState(0);
   const { userData } = useUser();
   const router = useRouter();
-  
+
   const notificationListener = useRef<any | null>(null);
   const responseListener = useRef<any | null>(null);
   const unreadCountUnsubscribe = useRef<(() => void) | undefined>(undefined);
@@ -59,15 +59,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       notificationListener.current = addNotificationReceivedListener((notification) => {
         console.log('Notification received:', notification);
         setNotification(notification);
-        
+
         // Save notification to Firestore
         if (userData?.phoneNumber) {
           const content = notification.request.content;
           const notificationType = (content.data?.type as string) || 'info';
-          const type = ['info', 'success', 'warning', 'error'].includes(notificationType) 
+          const type = ['info', 'success', 'warning', 'error'].includes(notificationType)
             ? notificationType as 'info' | 'success' | 'warning' | 'error'
             : 'info';
-          
+
           saveNotificationToFirestore(
             userData.phoneNumber,
             content.title || 'Notification',
@@ -109,28 +109,28 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const registerNotifications = async () => {
     try {
       const token = await registerForPushNotificationsAsync();
-      
+
       if (token) {
-        setExpoPushToken(token);
-        setIsRegistered(true);
-        
-        // Save token to Firebase if user is logged in
         if (userData?.phoneNumber) {
+          setExpoPushToken(token);
           await savePushTokenToFirebase(userData.phoneNumber, token);
+          console.log('✅ Push token saved to Firebase for user:', userData.phoneNumber);
+          setIsRegistered(true);
         }
+
       } else {
         // Even without token, mark as "registered" to prevent repeated attempts
         setIsRegistered(true);
       }
     } catch (error) {
       console.error('Error registering notifications:', error);
-      setIsRegistered(true); // Prevent repeated attempts
+      // setIsRegistered(false); // Prevent repeated attempts
     }
   };
 
   const handleNotificationResponse = (response: any) => {
     const data = response.notification.request.content.data;
-    
+
     // Clear badge when notification is tapped
     clearBadgeCount();
 

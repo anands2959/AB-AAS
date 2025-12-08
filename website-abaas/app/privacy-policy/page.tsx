@@ -118,13 +118,13 @@ export default function PrivacyPolicy() {
                             </p>
                             <div className=" p-2 less-rounded border-2 border-[#CCB256] mb-6">
                                 <p className="text-gray-800">
-                                    <span className="font-medium">Email:</span> privacy@abaas.org
+                                    <span className="font-medium">Email:</span> ashtavakramuni@gmail.com
                                 </p>
                                 <p className="text-gray-800 mt-2">
-                                    <span className="font-medium">Phone:</span> +91-XXXXXXXXXX
+                                    <span className="font-medium">Phone:</span> +91-80041 25330
                                 </p>
                                 <p className="text-gray-800 mt-2">
-                                    <span className="font-medium">Address:</span> [Organization Address]
+                                    <span className="font-medium">Address:</span> Om internet cafe, Renukoot, Uttar Pradesh 231217
                                 </p>
                             </div>
 

@@ -53,11 +53,5 @@ export default function RootLayout() {
   );
 }
 
-// Configure reanimated (only needed for production builds)
-if (typeof global !== 'undefined') {
-  try {
-    require('react-native-reanimated');
-  } catch (e) {
-    // Reanimated not available in Expo Go, ignore
-  }
-}
+// Configure reanimated
+import 'react-native-reanimated';
